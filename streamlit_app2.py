@@ -14,7 +14,7 @@ if st.button("답변 받기") and api_key and question:
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4.1-mini",
             messages=[
                 {"role": "system", "content": "너는 친절한 도우미야."},
                 {"role": "user", "content": question}
