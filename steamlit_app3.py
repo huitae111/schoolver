@@ -1,8 +1,7 @@
 import streamlit as st
-import openai
+from openai import OpenAI
 
-# 🔑 OpenAI API 키 입력 (환경 변수나 secrets로 안전하게 관리 권장)
-openai.api_key = "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"
+client = OpenAI(api_key="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")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -17,13 +16,12 @@ if prompt := st.chat_input("메시지를 입력하세요"):
     st.chat_message("user").markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # GPT 모델 호출
     with st.chat_message("assistant"):
         with st.spinner("GPT 응답 생성 중..."):
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",  # 또는 gpt-4
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
                 messages=st.session_state.messages
             )
-            assistant_reply = response["choices"][0]["message"]["content"]
+            assistant_reply = response.choices[0].message.content
             st.markdown(assistant_reply)
             st.session_state.messages.append({"role": "assistant", "content": assistant_reply})
