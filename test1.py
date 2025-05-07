@@ -7,6 +7,10 @@ api_key = st.text_input("OpenAI API Key를 입력하세요", type="password")
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+if st.button("Clear 대화 초기화"):
+    st.session_state.messages = []
+    st.success("대화가 초기화되었습니다!")
+
 # 이전 대화 보여주기
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
