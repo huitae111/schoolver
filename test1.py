@@ -2,13 +2,9 @@ import streamlit as st
 from openai import OpenAI
 
 st.sidebar.title("메뉴")
-page = st.sidebar.radio("이동할 페이지 선택", ["홈", "챗봇"])
+page = st.sidebar.radio("이동할 페이지 선택", ["챗봇","국립부경대학교 도서관 챗봇","ChatPDF"])
 
-if page == "홈":
-    st.title("홈 페이지")
-    st.write("여기는 홈입니다.")
-
-elif page == "챗봇":
+if page == "챗봇":
     st.title("챗봇 페이지")
     api_key = st.text_input("OpenAI API Key를 입력하세요", type="password")
 
@@ -53,3 +49,11 @@ if prompt := st.chat_input("메시지를 입력하세요"):
                 st.session_state.messages.append({"role": "assistant", "content": answer})
             except Exception as e:
                 st.error(f"오류 발생: {e}")
+
+if page == "국립부경대학교 도서관 챗봇":
+    st.title("홈 페이지")
+    st.write("여기는 홈입니다.")
+
+if page == "ChatPDF":
+    st.title("홈 페이지")
+    st.write("여기는 홈입니다.")
