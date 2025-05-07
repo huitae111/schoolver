@@ -62,7 +62,7 @@ if page == "국립부경대학교 도서관 챗봇":
         return text
 
 
-    api_key = "sk-..."  # 본인의 키로 교체하세요
+    api_key = st.text_input("OpenAI API Key를 입력하세요", type="password")
     client = openai.OpenAI(api_key=api_key)
 
 
