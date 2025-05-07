@@ -1,6 +1,9 @@
 import streamlit as st
 from openai import OpenAI
 
+
+api_key = st.text_input("OpenAI API Key를 입력하세요", type="password")
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -9,8 +12,6 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# API 키
-api_key = st.text_input("OpenAI API Key를 입력하세요", type="password")
 
 # OpenAI 클라이언트 초기화
 client = OpenAI(api_key=api_key)
