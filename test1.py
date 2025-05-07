@@ -1,8 +1,16 @@
 import streamlit as st
 from openai import OpenAI
 
+st.sidebar.title("📚 메뉴")
+page = st.sidebar.radio("이동할 페이지 선택", ["홈", "챗봇"])
 
-api_key = st.text_input("OpenAI API Key를 입력하세요", type="password")
+if page == "홈":
+    st.title("홈 페이지")
+    st.write("여기는 홈입니다.")
+
+elif page == "챗봇":
+    st.title("🤖 챗봇 페이지")
+    api_key = st.text_input("OpenAI API Key를 입력하세요", type="password")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
