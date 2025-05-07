@@ -50,9 +50,56 @@ if page == "챗봇":
                 except Exception as e:
                     st.error(f"오류 발생: {e}")
 
-if page == "국립부경대학교 도서관 챗봇":
-    st.title("홈 페이지")
-    st.write("여기는 홈입니다.")
+if page == "국립부경대학교 도서관 챗봇":  
+    import fitz  # PyMuPDF
+
+
+    def extract_text_from_pdf(file_path):
+        doc = fitz.open(file_path)
+        text = ""
+        for page in doc:
+            text += page.get_text()
+        return text
+
+
+    api_key = "sk-..."  # 본인의 키로 교체하세요
+    client = openai.OpenAI(api_key=api_key)
+
+
+    rules_text = extract_text_from_pdf("bogyeong_rules.pdf")
+
+
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+
+    if st.button("대화 초기화"):
+        st.session_state.messages = []
+
+
+    if prompt := st.chat_input("도서관에 대해 궁금한 점을 입력하세요"):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        st.chat_message("user").markdown(prompt)
+
+
+        messages = [
+            {"role": "system", "content": "너는 국립부경대학교 도서관 규정집에 기반해서만 대답하는 어시스턴트야."},
+            {"role": "system", "content": rules_text},
+        ] + st.session_state.messages
+
+
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4",  # 또는 gpt-4.1-mini
+                messages=messages
+            )
+            answer = response.choices[0].message.content
+            st.chat_message("assistant").markdown(answer)
+            st.session_state.messages.append({"role": "assistant", "content": answer})
+
+        except Exception as e:
+            st.error(f"오류 발생: {e}")
+
 
 if page == "ChatPDF":
     st.title("홈 페이지")
