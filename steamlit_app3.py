@@ -1,8 +1,9 @@
 import streamlit as st
 from openai import OpenAI
 
-# API 키 넣기 (보안을 위해 st.secrets나 환경변수 사용 권장)
-client = OpenAI(api_key="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")  # 발급받은 실제 키로 교체
+# API 키 입력받기
+api_key = st.text_input("OpenAI API Key를 입력하세요", type="password")
+client=api_key
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
