@@ -2,7 +2,7 @@ import streamlit as st
 from openai import OpenAI
 
 # API 키
-api_key = "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"  # 실제 키 넣기
+api_key = st.text_input("OpenAI API Key를 입력하세요", type="password")
 
 # OpenAI 클라이언트 초기화
 client = OpenAI(api_key=api_key)
