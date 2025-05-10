@@ -85,5 +85,96 @@ elif page == "국립부경대학교 도서관 챗봇":
             st.error(f"오류 발생: {e}")
 
 elif page == "ChatPDF":
-    st.title("홈 페이지")
-    st.write("여기는 홈입니다.")
+    import os
+    import tempfile
+
+    st.title("ChatPDF")
+
+    api_key = st.text_input("OpenAI API Key를 입력하세요", type="password")
+    client = openai.OpenAI(api_key=api_key)
+
+    uploaded_file = st.file_uploader("PDF 파일을 업로드하세요 (1개만)", type=["pdf"])
+    
+    # 세션 상태 초기화
+    if "vector_file_id" not in st.session_state:
+        st.session_state.vector_file_id = None
+    if "assistant_id" not in st.session_state:
+        st.session_state.assistant_id = None
+    if "thread_id" not in st.session_state:
+        st.session_state.thread_id = None
+
+    # Clear 벡터 삭제 버튼
+    if st.button("Clear"):
+        if st.session_state.vector_file_id:
+            try:
+                client.files.delete(st.session_state.vector_file_id)
+                st.success("Vector 파일이 삭제되었습니다.")
+                st.session_state.vector_file_id = None
+                st.session_state.assistant_id = None
+                st.session_state.thread_id = None
+            except Exception as e:
+                st.error(f"파일 삭제 오류: {e}")
+        else:
+            st.info("삭제할 벡터 파일이 없습니다.")
+
+    # 파일 업로드 → OpenAI에 업로드 후 Assistant에 연결
+    if uploaded_file and api_key:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+            tmp_file.write(uploaded_file.read())
+            tmp_file_path = tmp_file.name
+
+        with st.spinner("파일 업로드 중..."):
+            try:
+                uploaded = client.files.create(
+                    file=open(tmp_file_path, "rb"),
+                    purpose="assistants"
+                )
+                st.session_state.vector_file_id = uploaded.id
+                st.success("PDF 파일이 OpenAI에 업로드되었습니다.")
+            except Exception as e:
+                st.error(f"파일 업로드 실패: {e}")
+
+    # Assistant 생성
+    if st.session_state.vector_file_id and not st.session_state.assistant_id:
+        assistant = client.beta.assistants.create(
+            name="ChatPDF Assistant",
+            instructions="업로드된 PDF 파일을 참고하여 사용자 질문에 답변하세요.",
+            tools=[{"type": "file_search"}],
+            file_ids=[st.session_state.vector_file_id],
+            model="gpt-4"
+        )
+        st.session_state.assistant_id = assistant.id
+        st.session_state.thread_id = client.beta.threads.create().id
+
+    # 사용자 질문 입력
+    if st.session_state.assistant_id:
+        prompt = st.chat_input("PDF 내용을 기반으로 질문해보세요:")
+        if prompt:
+            st.chat_message("user").markdown(prompt)
+            client.beta.threads.messages.create(
+                thread_id=st.session_state.thread_id,
+                role="user",
+                content=prompt
+            )
+
+            with st.chat_message("assistant"):
+                with st.spinner("답변 생성 중..."):
+                    run = client.beta.threads.runs.create(
+                        thread_id=st.session_state.thread_id,
+                        assistant_id=st.session_state.assistant_id
+                    )
+
+                    while True:
+                        run_status = client.beta.threads.runs.retrieve(
+                            thread_id=st.session_state.thread_id,
+                            run_id=run.id
+                        )
+                        if run_status.status == "completed":
+                            break
+
+                    messages = client.beta.threads.messages.list(
+                        thread_id=st.session_state.thread_id
+                    )
+                    answer = messages.data[0].content[0].text.value
+                    st.markdown(answer)
+
