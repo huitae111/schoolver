@@ -55,7 +55,7 @@ elif page == "국립부경대학교 도서관 챗봇":
     api_key = st.text_input("OpenAI API Key를 입력하세요", type="password")
     client = openai.OpenAI(api_key=api_key)
 
-    rules_text = extract_text_from_pdf("bogyeong_rules.pdf")
+    rules_text = extract_text_from_pdf("국립부경대학교 도서관 규정.pdf")
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
