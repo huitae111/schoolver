@@ -85,16 +85,20 @@ elif page == "국립부경대학교 도서관 챗봇":
             st.error(f"오류 발생: {e}")
 
 elif page == "ChatPDF":
+    elif page == "ChatPDF":
     import tempfile
     import os
 
-    st.title("ChatPDF - PDF로 질문하기")
+    st.title("ChatPDF - PDF 기반 질문 챗봇")
 
+    # API 키 입력
     api_key = st.text_input("OpenAI API Key를 입력하세요", type="password")
-    openai.api_key = api_key  # ✅ 최신 방식으로 설정
+    openai.api_key = api_key
 
-    uploaded_file = st.file_uploader("PDF 파일을 업로드하세요 (1개만)", type=["pdf"])
+    # PDF 업로더
+    uploaded_file = st.file_uploader("PDF 파일을 업로드하세요 (하나만)", type=["pdf"])
 
+    # 세션 상태 초기화
     if "vector_file_id" not in st.session_state:
         st.session_state.vector_file_id = None
     if "assistant_id" not in st.session_state:
@@ -102,63 +106,75 @@ elif page == "ChatPDF":
     if "thread_id" not in st.session_state:
         st.session_state.thread_id = None
 
-    # Clear 버튼 (벡터 삭제용)
+    # ❌ Clear 버튼 (벡터 및 Assistant 삭제)
     if st.button("Clear"):
         if st.session_state.vector_file_id:
             try:
                 openai.files.delete(st.session_state.vector_file_id)
-                st.success("벡터 파일이 삭제되었습니다.")
+                st.success("벡터 파일 삭제 완료")
             except Exception as e:
                 st.error(f"벡터 삭제 오류: {e}")
         st.session_state.vector_file_id = None
         st.session_state.assistant_id = None
         st.session_state.thread_id = None
 
-    # 파일 업로드 처리
+    # ✅ PDF 업로드 후 OpenAI에 파일 업로드
     if uploaded_file and api_key:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
             tmp_file.write(uploaded_file.read())
             tmp_file_path = tmp_file.name
 
-        with st.spinner("PDF 업로드 중..."):
+        with st.spinner("OpenAI에 파일 업로드 중..."):
             try:
                 uploaded = openai.files.create(
                     file=open(tmp_file_path, "rb"),
                     purpose="assistants"
                 )
                 st.session_state.vector_file_id = uploaded.id
-                st.success("PDF 업로드 성공!")
+                st.success("PDF 파일 업로드 성공!")
             except Exception as e:
-                st.error(f"업로드 오류: {e}")
+                st.error(f"파일 업로드 실패: {e}")
 
-    # Assistant 생성
+    # ✅ Assistant 생성 및 파일 연결
     if st.session_state.vector_file_id and not st.session_state.assistant_id:
         try:
+            # Assistant 생성 (file_ids 제거됨)
             assistant = openai.beta.assistants.create(
                 name="ChatPDF Assistant",
-                instructions="업로드된 PDF 내용을 바탕으로 사용자의 질문에 답변하세요.",
+                instructions="업로드된 PDF 내용을 바탕으로 질문에 답변하세요.",
                 tools=[{"type": "file_search"}],
-                file_ids=[st.session_state.vector_file_id],
                 model="gpt-4"
             )
             st.session_state.assistant_id = assistant.id
+
+            # 파일을 Assistant에 연결
+            openai.beta.assistants.files.create(
+                assistant_id=assistant.id,
+                file_id=st.session_state.vector_file_id
+            )
+
+            # Thread 생성
             thread = openai.beta.threads.create()
             st.session_state.thread_id = thread.id
+
         except Exception as e:
             st.error(f"Assistant 생성 오류: {e}")
 
-    # 사용자 질문
+    # ✅ 질문 입력 및 응답 처리
     if st.session_state.assistant_id and st.session_state.thread_id:
-        prompt = st.chat_input("PDF 내용 기반으로 질문해보세요:")
+        prompt = st.chat_input("PDF 내용에 대해 질문해보세요:")
         if prompt:
             st.chat_message("user").markdown(prompt)
+
             try:
+                # 메시지 추가
                 openai.beta.threads.messages.create(
                     thread_id=st.session_state.thread_id,
                     role="user",
                     content=prompt
                 )
 
+                # 응답 생성
                 with st.chat_message("assistant"):
                     with st.spinner("답변 생성 중..."):
                         run = openai.beta.threads.runs.create(
@@ -166,6 +182,7 @@ elif page == "ChatPDF":
                             assistant_id=st.session_state.assistant_id
                         )
 
+                        # 대기 루프
                         while True:
                             run_status = openai.beta.threads.runs.retrieve(
                                 thread_id=st.session_state.thread_id,
@@ -174,12 +191,12 @@ elif page == "ChatPDF":
                             if run_status.status == "completed":
                                 break
 
+                        # 응답 출력
                         messages = openai.beta.threads.messages.list(
                             thread_id=st.session_state.thread_id
                         )
                         answer = messages.data[0].content[0].text.value
                         st.markdown(answer)
+
             except Exception as e:
                 st.error(f"응답 오류: {e}")
-
-
